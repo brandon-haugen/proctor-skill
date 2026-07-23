@@ -1,6 +1,8 @@
 # proctor-skill
 
-A Claude Code skill that quizzes you about branch changes before allowing `git push` or `git merge` into protected branches. Makes sure you actually understand what Claude built instead of rubber-stamping it.
+A skill that quizzes you about branch changes before allowing `git push` or `git merge` into protected branches. Makes sure you actually understand what your AI assistant built instead of rubber-stamping it.
+
+Works with **Claude Code** and **Copilot in VS Code** (agent mode).
 
 ## What it does
 
@@ -24,12 +26,12 @@ The periodic quiz only covers changes since the last checkpoint, not the entire 
 
 - **Protected branches** (default): `main`, `master`, `develop`, `release/*`
 - **Markers are commit-based, not time-based.** When you pass a quiz, the marker stores the current HEAD hash. Any new commit automatically invalidates it — so you can't pass a quiz, make 47 more commits, and push without being quizzed again.
-- Works in all Claude Code surfaces: CLI, desktop app, web app (claude.ai/code), and IDE extensions.
-- Only gates operations **inside Claude Code sessions**. Pushes from a plain terminal or IDE are not affected — the quiz is about ensuring you understand what *Claude* built.
+- Works in all Claude Code surfaces (CLI, desktop app, web app, IDE extensions) and Copilot in VS Code (agent mode).
+- Only gates operations **inside AI coding sessions**. Pushes from a plain terminal are not affected — the quiz is about ensuring you understand what *your AI assistant* built.
 
 ## Installation
 
-### Quick install
+### Claude Code
 
 ```bash
 git clone https://github.com/brandon-haugen/proctor-skill.git
@@ -37,13 +39,29 @@ cd proctor-skill
 bash install.sh /path/to/your-project
 ```
 
-### Install globally (all projects)
+Or install globally (all projects):
 
 ```bash
 bash install.sh --global
 ```
 
 The install script copies the hook and skill files into your project's `.claude/` directory and wires up `settings.json` — merging with your existing settings if you have them.
+
+### Copilot in VS Code
+
+```bash
+git clone https://github.com/brandon-haugen/proctor-skill.git
+cd proctor-skill
+bash install.sh --copilot /path/to/your-project
+```
+
+Or install globally:
+
+```bash
+bash install.sh --copilot --global
+```
+
+This copies the hook and skill files into `.github/` and creates a standalone hook config at `.github/hooks/proctor.json`.
 
 ### Update
 
@@ -53,6 +71,8 @@ To update to the latest version, pull the repo and re-run the install:
 cd proctor-skill
 git pull
 bash install.sh /path/to/your-project
+# or
+bash install.sh --copilot /path/to/your-project
 ```
 
 ### Uninstall
@@ -61,9 +81,16 @@ bash install.sh /path/to/your-project
 bash uninstall.sh /path/to/your-project
 # or
 bash uninstall.sh --global
+
+# Copilot:
+bash uninstall.sh --copilot /path/to/your-project
+# or
+bash uninstall.sh --copilot --global
 ```
 
 ### Manual install
+
+#### Claude Code
 
 Copy the hook and skill into your project's `.claude/` directory:
 
@@ -84,6 +111,38 @@ Then add the hook config to your project's `.claude/settings.json`:
           {
             "type": "command",
             "command": "bash .claude/hooks/proctor.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+#### Copilot in VS Code
+
+Copy the hook and skill into your project's `.github/` directory:
+
+```bash
+mkdir -p /path/to/your-project/.github/hooks /path/to/your-project/.github/skills/proctor
+cp .claude/hooks/proctor.sh /path/to/your-project/.github/hooks/
+cp .claude/skills/proctor/SKILL.md /path/to/your-project/.github/skills/proctor/
+```
+
+Then create `.github/hooks/proctor.json`:
+
+```json
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .github/hooks/proctor.sh",
             "timeout": 10
           }
         ]
@@ -121,19 +180,19 @@ export PROCTOR_CHANGE_THRESHOLD=300
 ## How it works
 
 ```
-You ask Claude to push or merge into develop
-  → Claude calls Bash("git push ...")
+You ask your AI assistant to push or merge into develop
+  → It calls Bash("git push ...")
     → PreToolUse hook fires, detects git push
       → Checks for a quiz-passed marker matching current HEAD
         → No marker (or HEAD changed)? BLOCKED. "Run /proctor."
-  → Claude invokes /proctor
+  → It invokes /proctor
     → Diffs the branch, generates questions, quizzes you
       → You answer in chat
         → All correct? Marker written, push retried automatically
         → Any wrong? Correct answers explained, re-quiz with new questions
 
 Periodic (with PROCTOR_COMMIT_INTERVAL=5):
-  → Claude calls Bash("git commit ...")
+  → Bash("git commit ...")
     → Hook counts 5 commits since last checkpoint
       → BLOCKED. "Run /proctor."
   → Quiz covers only changes since last checkpoint
@@ -158,13 +217,15 @@ Periodic (with PROCTOR_COMMIT_INTERVAL=5):
 ## Files
 
 ```
-.claude/
+.claude/                              # Source files (also used for Claude Code installs)
   hooks/
-    proctor.sh             # PreToolUse hook — detects push/merge/commit, checks markers
+    proctor.sh                        # PreToolUse hook — detects push/merge/commit, checks markers
   skills/
     proctor/
-      SKILL.md             # Quiz logic — diff analysis, question generation, evaluation
-  settings.json            # Hook wiring
-install.sh                 # Installer script
-uninstall.sh               # Uninstaller script
+      SKILL.md                        # Quiz logic — diff analysis, question generation, evaluation
+  settings.json                       # Hook wiring (Claude Code)
+install.sh                            # Installer script (supports --copilot flag)
+uninstall.sh                          # Uninstaller script (supports --copilot flag)
 ```
+
+When installed with `--copilot`, the same hook and skill files are copied to `.github/hooks/` and `.github/skills/proctor/`, with hook config in `.github/hooks/proctor.json`.

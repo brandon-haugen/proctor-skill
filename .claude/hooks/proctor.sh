@@ -19,6 +19,12 @@ set -euo pipefail
 
 INPUT=$(cat)
 
+# Quick exit for tools that don't run shell commands (e.g., file edits, reads).
+# Avoids the python3 overhead when the hook fires without a matcher filter.
+if ! printf '%s' "$INPUT" | grep -q '"command"'; then
+  exit 0
+fi
+
 # Extract command and working directory from the hook input.
 # The Bash tool's CWD may differ from the session's primary working directory
 # (e.g., when pushing from a different repo than where the session started).
