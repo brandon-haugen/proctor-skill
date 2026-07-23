@@ -31,61 +31,59 @@ The periodic quiz only covers changes since the last checkpoint, not the entire 
 
 ## Installation
 
-### Claude Code
+### npm (recommended)
+
+```bash
+# Claude Code
+npx proctor-skill /path/to/your-project
+npx proctor-skill --global
+
+# Copilot in VS Code
+npx proctor-skill --copilot /path/to/your-project
+npx proctor-skill --copilot --global
+```
+
+To update, just run the same command again — npx always fetches the latest version.
+
+To uninstall:
+
+```bash
+npx proctor-skill uninstall /path/to/your-project
+npx proctor-skill uninstall --copilot /path/to/your-project
+```
+
+### From source
 
 ```bash
 git clone https://github.com/brandon-haugen/proctor-skill.git
 cd proctor-skill
+
+# Claude Code
 bash install.sh /path/to/your-project
-```
-
-Or install globally (all projects):
-
-```bash
+# or globally:
 bash install.sh --global
-```
 
-The install script copies the hook and skill files into your project's `.claude/` directory and wires up `settings.json` — merging with your existing settings if you have them.
-
-### Copilot in VS Code
-
-```bash
-git clone https://github.com/brandon-haugen/proctor-skill.git
-cd proctor-skill
+# Copilot in VS Code
 bash install.sh --copilot /path/to/your-project
-```
-
-Or install globally:
-
-```bash
+# or globally:
 bash install.sh --copilot --global
 ```
 
-This copies the hook and skill files into `.github/` and creates a standalone hook config at `.github/hooks/proctor.json`.
+The install script copies the hook and skill files into your project's `.claude/` (or `.github/` for Copilot) directory and wires up the hook config — merging with your existing settings if you have them.
 
-### Update
-
-To update to the latest version, pull the repo and re-run the install:
+To update, pull the repo and re-run the install:
 
 ```bash
 cd proctor-skill
 git pull
 bash install.sh /path/to/your-project
-# or
-bash install.sh --copilot /path/to/your-project
 ```
 
-### Uninstall
+To uninstall:
 
 ```bash
 bash uninstall.sh /path/to/your-project
-# or
-bash uninstall.sh --global
-
-# Copilot:
 bash uninstall.sh --copilot /path/to/your-project
-# or
-bash uninstall.sh --copilot --global
 ```
 
 ### Manual install
@@ -217,6 +215,8 @@ Periodic (with PROCTOR_COMMIT_INTERVAL=5):
 ## Files
 
 ```
+bin/
+  proctor-skill                       # npm bin entry point
 .claude/                              # Source files (also used for Claude Code installs)
   hooks/
     proctor.sh                        # PreToolUse hook — detects push/merge/commit, checks markers
@@ -226,6 +226,7 @@ Periodic (with PROCTOR_COMMIT_INTERVAL=5):
   settings.json                       # Hook wiring (Claude Code)
 install.sh                            # Installer script (supports --copilot flag)
 uninstall.sh                          # Uninstaller script (supports --copilot flag)
+package.json                          # npm package config
 ```
 
 When installed with `--copilot`, the same hook and skill files are copied to `.github/hooks/` and `.github/skills/proctor/`, with hook config in `.github/hooks/proctor.json`.

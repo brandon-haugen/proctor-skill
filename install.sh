@@ -18,13 +18,16 @@ GLOBAL=false
 PROJECT_DIR=""
 
 print_usage() {
+  local cmd
+  cmd=$(basename "$0")
+  [ "$cmd" = "proctor-skill" ] && cmd="proctor-skill" || cmd="bash install.sh"
   echo "Usage:"
-  echo "  bash install.sh                              # install for Claude Code into current project"
-  echo "  bash install.sh /path/to/project             # install for Claude Code into a specific project"
-  echo "  bash install.sh --global                     # install for Claude Code globally (~/.claude)"
-  echo "  bash install.sh --copilot                    # install for Copilot in VS Code into current project"
-  echo "  bash install.sh --copilot /path/to/project   # install for Copilot into a specific project"
-  echo "  bash install.sh --copilot --global           # install for Copilot globally (~/.copilot)"
+  echo "  $cmd                              # install for Claude Code into current project"
+  echo "  $cmd /path/to/project             # install for Claude Code into a specific project"
+  echo "  $cmd --global                     # install for Claude Code globally (~/.claude)"
+  echo "  $cmd --copilot                    # install for Copilot in VS Code into current project"
+  echo "  $cmd --copilot /path/to/project   # install for Copilot into a specific project"
+  echo "  $cmd --copilot --global           # install for Copilot globally (~/.copilot)"
 }
 
 for arg in "$@"; do
@@ -39,7 +42,7 @@ done
 if [ "$COPILOT" = true ]; then
   if [ "$GLOBAL" = true ]; then
     TARGET_DIR="$HOME/.copilot"
-    HOOK_CMD="bash $SCRIPT_DIR/.claude/hooks/proctor.sh"
+    HOOK_CMD="bash $HOME/.copilot/hooks/proctor.sh"
     echo "Installing proctor for Copilot globally to $TARGET_DIR"
   else
     PROJECT_DIR="${PROJECT_DIR:-.}"
@@ -50,7 +53,7 @@ if [ "$COPILOT" = true ]; then
 else
   if [ "$GLOBAL" = true ]; then
     TARGET_DIR="$HOME/.claude"
-    HOOK_CMD="bash $SCRIPT_DIR/.claude/hooks/proctor.sh"
+    HOOK_CMD="bash $HOME/.claude/hooks/proctor.sh"
     echo "Installing proctor globally to $TARGET_DIR"
   else
     PROJECT_DIR="${PROJECT_DIR:-.}"

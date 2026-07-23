@@ -17,13 +17,16 @@ GLOBAL=false
 PROJECT_DIR=""
 
 print_usage() {
+  local cmd
+  cmd=$(basename "$0")
+  [ "$cmd" = "proctor-skill" ] && cmd="proctor-skill uninstall" || cmd="bash uninstall.sh"
   echo "Usage:"
-  echo "  bash uninstall.sh                              # uninstall from current project (Claude Code)"
-  echo "  bash uninstall.sh /path/to/project             # uninstall from a specific project"
-  echo "  bash uninstall.sh --global                     # uninstall globally (~/.claude)"
-  echo "  bash uninstall.sh --copilot                    # uninstall Copilot from current project"
-  echo "  bash uninstall.sh --copilot /path/to/project   # uninstall Copilot from a specific project"
-  echo "  bash uninstall.sh --copilot --global           # uninstall Copilot globally (~/.copilot)"
+  echo "  $cmd                              # uninstall from current project (Claude Code)"
+  echo "  $cmd /path/to/project             # uninstall from a specific project"
+  echo "  $cmd --global                     # uninstall globally (~/.claude)"
+  echo "  $cmd --copilot                    # uninstall Copilot from current project"
+  echo "  $cmd --copilot /path/to/project   # uninstall Copilot from a specific project"
+  echo "  $cmd --copilot --global           # uninstall Copilot globally (~/.copilot)"
 }
 
 for arg in "$@"; do

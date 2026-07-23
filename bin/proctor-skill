@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# npm bin entry point — resolves symlinks to find the package directory,
+# then dispatches to install.sh or uninstall.sh.
+
+set -euo pipefail
+
+SOURCE="$0"
+while [ -L "$SOURCE" ]; do
+  DIR="$(cd "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+PACKAGE_DIR="$(cd "$(dirname "$SOURCE")/.." && pwd)"
+
+if [ "${1:-}" = "uninstall" ]; then
+  shift
+  exec bash "$PACKAGE_DIR/uninstall.sh" "$@"
+else
+  exec bash "$PACKAGE_DIR/install.sh" "$@"
+fi
