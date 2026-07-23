@@ -6,7 +6,7 @@ Works with **Claude Code** and **Copilot in VS Code** (agent mode).
 
 ## What it does
 
-When Claude tries to run `git push`, `git merge` (into a protected branch), or `git pull` (on a protected branch), a PreToolUse hook blocks the operation and tells Claude to run the `/proctor` skill. The skill:
+When your AI assistant tries to run `git push`, `git merge` (into a protected branch), or `git pull` (on a protected branch), a PreToolUse hook blocks the operation and tells it to run the `/proctor` skill. The skill:
 
 1. Diffs the branch to see what changed
 2. Generates 1–5 comprehension questions (scaled by diff size)
