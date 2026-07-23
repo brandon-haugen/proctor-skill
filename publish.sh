@@ -17,19 +17,22 @@ VERSION="${1:-}"
 
 if [ -n "$VERSION" ]; then
   CURRENT=$(node -p "require('./package.json').version")
-  if [ "$VERSION" = "$CURRENT" ]; then
-    echo "Version is already $VERSION"
-  else
+  if [ "$VERSION" != "$CURRENT" ]; then
     npm version "$VERSION" --no-git-tag-version
     git add package.json
     git commit -m "Bump version to $VERSION"
-    git tag "$VERSION"
-    echo "Bumped to $VERSION and created tag"
+    echo "Bumped to $VERSION"
   fi
 else
   VERSION=$(node -p "require('./package.json').version")
-  echo "Publishing version $VERSION"
 fi
+
+if ! git tag -l "$VERSION" | grep -q .; then
+  git tag "$VERSION"
+  echo "Created tag $VERSION"
+fi
+
+echo "Publishing version $VERSION"
 
 echo ""
 echo "Publishing proctor-skill@$VERSION to npm..."
