@@ -227,6 +227,7 @@ bin/
 install.sh                            # Installer script (supports --copilot flag)
 uninstall.sh                          # Uninstaller script (supports --copilot flag)
 package.json                          # npm package config
+publish.sh                            # Publish to npm (handles version bump, tag, publish)
 ```
 
 When installed with `--copilot`, the same hook and skill files are copied to `.github/hooks/` and `.github/skills/proctor/`, with hook config in `.github/hooks/proctor.json`.
