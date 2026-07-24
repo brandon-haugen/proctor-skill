@@ -22,6 +22,22 @@ For long-running branches, you can trigger quizzes **during development** — no
 
 The periodic quiz only covers changes since the last checkpoint, not the entire branch.
 
+### Quiz summary
+
+See your quiz history and identify areas where you've struggled:
+
+```
+/proctor summary
+/proctor summary for feature/auth
+```
+
+The summary shows:
+- **Overview**: total quizzes, first-attempt pass rate, per-category breakdown (What/Why/Risk)
+- **Trouble spots**: files and concepts you've failed on repeatedly, with commit references so you can find the relevant code in git history
+- **Recent history**: last 5–10 quizzes with date, branch, operation, and outcome
+
+Quiz history is stored in `~/.proctor/history.jsonl` and persists across sessions. Each entry includes the commit hash and files from the diff, so the summary can point you to specific spots in your git history where you had trouble.
+
 ### Key details
 
 - **Protected branches** (default): `main`, `master`, `develop`, `release/*`
@@ -231,6 +247,12 @@ install.sh                            # Installer script (supports --copilot fla
 uninstall.sh                          # Uninstaller script (supports --copilot flag)
 package.json                          # npm package config
 publish.sh                            # Publish to npm (handles version bump, tag, publish)
+
+~/.proctor/
+  history.jsonl                       # Quiz history log (created on first quiz)
+/tmp/proctor/
+  push-{branch}                       # Marker files (ephemeral, per-session)
+  checkpoint-{branch}                 # Periodic quiz checkpoints
 ```
 
 When installed with `--copilot`, the same hook and skill files are copied to `.github/hooks/` and `.github/skills/proctor/`, with hook config in `.github/hooks/proctor.json`.
