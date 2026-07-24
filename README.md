@@ -47,7 +47,19 @@ Quiz history is stored in `~/.proctor/history.jsonl` and persists across session
 
 ## Installation
 
-### npm (recommended)
+### skills.sh
+
+```bash
+npx skills add brandon-haugen/proctor-skill
+```
+
+This installs the `/proctor` skill but not the hook that automatically blocks push/merge. To add the hook, also run:
+
+```bash
+npx proctor-skill /path/to/your-project
+```
+
+### npm
 
 ```bash
 # Claude Code
