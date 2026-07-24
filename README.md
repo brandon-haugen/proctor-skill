@@ -25,7 +25,7 @@ The periodic quiz only covers changes since the last checkpoint, not the entire 
 ### Key details
 
 - **Protected branches** (default): `main`, `master`, `develop`, `release/*`
-- **Markers are commit-based, not time-based.** When you pass a quiz, the marker stores the current HEAD hash. Any new commit automatically invalidates it — so you can't pass a quiz, make 47 more commits, and push without being quizzed again.
+- **Markers are content-based, not time-based.** When you pass a quiz, the marker stores the current HEAD hash and a diff content hash. Any actual code change invalidates it — so you can't pass a quiz, make 47 more commits, and push without being quizzed again. Content-preserving rebases don't invalidate markers.
 - Works in all Claude Code surfaces (CLI, desktop app, web app, IDE extensions) and Copilot in VS Code (agent mode).
 - Only gates operations **inside AI coding sessions**. Pushes from a plain terminal are not affected — the quiz is about ensuring you understand what *your AI assistant* built.
 
@@ -210,6 +210,9 @@ Periodic (with PROCTOR_COMMIT_INTERVAL=5):
 | `git pull` (on `develop`) | Always (protected branch) |
 | `git -C /path/to/repo push` | Always (detects -C flag) |
 | `git commit -m "fix"` | Only if periodic thresholds are set and exceeded |
+| `git push origin 0.0.1` (a tag) | No — tag pushes are not code changes |
+| `git push --tags` | No — tag pushes are not code changes |
+| `git rebase main` (then push) | Only if the rebase changed the diff content |
 | `git merge develop` (on a feature branch) | No — not a protected target |
 
 ## Files

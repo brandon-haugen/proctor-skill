@@ -6,8 +6,9 @@
 # periodic quiz thresholds are exceeded — until the user passes a
 # comprehension quiz via /proctor.
 #
-# Markers store the quizzed HEAD commit hash. A marker is only valid if HEAD
-# still matches — any new commit invalidates it automatically.
+# Markers store the quizzed HEAD commit hash and a diff content hash. The
+# commit hash is the fast path; the diff hash is a fallback so that
+# content-preserving rebases don't invalidate a passed quiz.
 #
 # Environment variables:
 #   PROCTOR_MODE                - "blocking" (default) or "advisory"
@@ -76,19 +77,40 @@ is_protected() {
   return 1
 }
 
-# A marker is valid only if the stored commit hash matches the current HEAD.
-# Any new commit after the quiz invalidates the marker automatically.
+# Hash the diff content for the current branch. Used to detect whether a
+# rebase changed the actual code or just rewrote commit history.
+compute_diff_hash() {
+  local base
+  base=$(git merge-base HEAD develop 2>/dev/null || git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null || echo "")
+  if [ -n "$base" ]; then
+    git diff "$base" HEAD | git hash-object --stdin
+  else
+    git diff HEAD | git hash-object --stdin
+  fi
+}
+
+# A marker is valid if either:
+#   1. The stored commit hash matches HEAD (fast path), or
+#   2. The stored diff hash matches the current diff (handles rebases)
 marker_matches_head() {
   local marker="$1"
   if [ ! -f "$marker" ]; then
     return 1
   fi
-  local stored
-  stored=$(cat "$marker")
+  local stored_commit stored_diff
+  stored_commit=$(sed -n '1p' "$marker")
+  stored_diff=$(sed -n '2p' "$marker")
   local head
   head=$(git rev-parse HEAD 2>/dev/null || echo "")
-  if [ -n "$stored" ] && [ "$stored" = "$head" ]; then
+  if [ -n "$stored_commit" ] && [ "$stored_commit" = "$head" ]; then
     return 0
+  fi
+  if [ -n "$stored_diff" ]; then
+    local current_diff
+    current_diff=$(compute_diff_hash)
+    if [ "$stored_diff" = "$current_diff" ]; then
+      return 0
+    fi
   fi
   return 1
 }
@@ -174,6 +196,22 @@ GIT_PREFIX='(^|\s|&&|\|\||;)git\s+(-[A-Za-z]+\s+\S+\s+)*'
 
 # --- Detect git push ---
 if printf '%s' "$COMMAND" | grep -qE "${GIT_PREFIX}push(\s|$)"; then
+  # Skip tag-only pushes — tags are pointers to existing commits, not new changes
+  IS_TAG_PUSH=false
+  if printf '%s' "$COMMAND" | grep -qE '\s--tags(\s|$)'; then
+    IS_TAG_PUSH=true
+  elif printf '%s' "$COMMAND" | grep -qE '\srefs/tags/'; then
+    IS_TAG_PUSH=true
+  else
+    PUSH_REF=$(printf '%s' "$COMMAND" | sed -E 's/.*push\s+//' | awk '{for(i=1;i<=NF;i++) if($i !~ /^-/) {ref=$i} } END{print ref}')
+    if [ -n "$PUSH_REF" ] && git tag -l "$PUSH_REF" 2>/dev/null | grep -q .; then
+      IS_TAG_PUSH=true
+    fi
+  fi
+  if [ "$IS_TAG_PUSH" = true ]; then
+    exit 0
+  fi
+
   MARKER="$MARKER_DIR/push-${SAFE_BRANCH}"
   if marker_matches_head "$MARKER"; then
     exit 0

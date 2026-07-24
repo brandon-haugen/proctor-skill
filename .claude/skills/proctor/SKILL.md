@@ -101,13 +101,21 @@ explanation of your reasoning.
 
 ```bash
 mkdir -p /tmp/proctor
+# Compute the diff hash (for rebase resilience)
+MERGE_BASE=$(git merge-base HEAD develop 2>/dev/null || git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null || echo "")
+if [ -n "$MERGE_BASE" ]; then
+  DIFF_HASH=$(git diff "$MERGE_BASE" HEAD | git hash-object --stdin)
+else
+  DIFF_HASH=$(git diff HEAD | git hash-object --stdin)
+fi
+
 # For a push (sanitize branch name — replace / with --):
-git rev-parse HEAD > "/tmp/proctor/push-{safe_branch}"
+printf '%s\n%s\n' "$(git rev-parse HEAD)" "$DIFF_HASH" > "/tmp/proctor/push-{safe_branch}"
 # For a merge:
-git rev-parse HEAD > "/tmp/proctor/merge-{safe_incoming}-into-{safe_target}"
+printf '%s\n%s\n' "$(git rev-parse HEAD)" "$DIFF_HASH" > "/tmp/proctor/merge-{safe_incoming}-into-{safe_target}"
 # For a periodic checkpoint:
-git rev-parse HEAD > "/tmp/proctor/periodic-{safe_branch}"
-git rev-parse HEAD > "/tmp/proctor/checkpoint-{safe_branch}"
+printf '%s\n%s\n' "$(git rev-parse HEAD)" "$DIFF_HASH" > "/tmp/proctor/periodic-{safe_branch}"
+printf '%s\n%s\n' "$(git rev-parse HEAD)" "$DIFF_HASH" > "/tmp/proctor/checkpoint-{safe_branch}"
 ```
 
 Replace `{safe_branch}`, `{safe_incoming}`, `{safe_target}` with the actual
@@ -115,12 +123,13 @@ branch names from the context, with `/` replaced by `--` (e.g.,
 `feature/foo` becomes `feature--foo`). This prevents slashes in branch
 names from creating subdirectories in the marker path.
 
-**Important**: markers store the HEAD commit hash, not just a timestamp.
-The hook validates markers by comparing the stored hash to the current HEAD.
-Any new commit after the quiz automatically invalidates the marker, so the
-user gets quizzed again. For periodic checkpoints, the checkpoint file
-resets the commit/change counter so the next quiz only covers new changes
-from this point forward.
+**Important**: markers store both the HEAD commit hash and a diff content
+hash. The hook checks the commit hash first (fast path). If the commit
+hash doesn't match (e.g., after a rebase), it falls back to comparing
+diff hashes — so a content-preserving rebase won't trigger a redundant
+quiz. Any actual code change invalidates the marker. For periodic
+checkpoints, the checkpoint file resets the commit/change counter so the
+next quiz only covers new changes from this point forward.
 
 3. Tell Claude to retry the original git operation (push, merge, or commit).
 
