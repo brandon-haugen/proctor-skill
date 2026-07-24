@@ -128,7 +128,13 @@ mkdir -p ~/.proctor
 REPO=$(git rev-parse --show-toplevel 2>/dev/null || echo "unknown")
 BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
 COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
-FILES=$(git diff --stat $(git merge-base HEAD develop 2>/dev/null || git merge-base HEAD main 2>/dev/null || echo HEAD) HEAD 2>/dev/null | grep '|' | awk '{print $1}' | python3 -c "import sys,json; print(json.dumps([l.strip() for l in sys.stdin]))")
+MERGE_BASE_LOG=$(git merge-base HEAD develop 2>/dev/null || git merge-base HEAD main 2>/dev/null || echo "")
+CURRENT_HEAD_LOG=$(git rev-parse HEAD 2>/dev/null || echo "")
+if [ -n "$MERGE_BASE_LOG" ] && [ "$MERGE_BASE_LOG" != "$CURRENT_HEAD_LOG" ]; then
+  FILES=$(git diff --stat "$MERGE_BASE_LOG" HEAD 2>/dev/null | grep '|' | awk '{print $1}' | python3 -c "import sys,json; print(json.dumps([l.strip() for l in sys.stdin]))")
+else
+  FILES="[]"
+fi
 
 cat >> ~/.proctor/history.jsonl << 'ENTRY'
 {REPLACE_THIS_WITH_THE_JSON_ENTRY}
@@ -164,12 +170,14 @@ For **trivial skips** (one-line typo fixes that don't need a quiz), log with
 
 ```bash
 mkdir -p /tmp/proctor
-# Compute the diff hash (for rebase resilience)
+# Compute the diff hash (for rebase resilience). If merge-base equals HEAD
+# (i.e., we're on the base branch), leave DIFF_HASH empty — the commit hash
+# is the only meaningful check in that case.
 MERGE_BASE=$(git merge-base HEAD develop 2>/dev/null || git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null || echo "")
-if [ -n "$MERGE_BASE" ]; then
+CURRENT_HEAD=$(git rev-parse HEAD 2>/dev/null || echo "")
+DIFF_HASH=""
+if [ -n "$MERGE_BASE" ] && [ "$MERGE_BASE" != "$CURRENT_HEAD" ]; then
   DIFF_HASH=$(git diff "$MERGE_BASE" HEAD | git hash-object --stdin)
-else
-  DIFF_HASH=$(git diff HEAD | git hash-object --stdin)
 fi
 
 # For a push (sanitize branch name — replace / with --):

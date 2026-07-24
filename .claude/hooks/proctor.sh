@@ -80,12 +80,14 @@ is_protected() {
 # Hash the diff content for the current branch. Used to detect whether a
 # rebase changed the actual code or just rewrote commit history.
 compute_diff_hash() {
-  local base
+  local base head
   base=$(git merge-base HEAD develop 2>/dev/null || git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null || echo "")
-  if [ -n "$base" ]; then
+  head=$(git rev-parse HEAD 2>/dev/null || echo "")
+  # If merge-base equals HEAD we're on the base branch itself — the diff is
+  # empty by definition, so return nothing and let the commit-hash check be
+  # the only validation.
+  if [ -n "$base" ] && [ "$base" != "$head" ]; then
     git diff "$base" HEAD | git hash-object --stdin
-  else
-    git diff HEAD | git hash-object --stdin
   fi
 }
 
