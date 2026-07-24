@@ -9,6 +9,7 @@ description: >
   "push from branch 'feature/foo'",
   "merge 'feature/bar' into protected branch 'develop'", or
   "periodic checkpoint on branch 'feature/foo'").
+  Also accepts "summary" or "stats" to show quiz history.
 ---
 
 # Proctor — Comprehension Gate
@@ -16,6 +17,30 @@ description: >
 You are running a comprehension quiz to make sure the user understands the
 changes on this branch before they land. The goal is learning and code
 ownership, not gatekeeping. Be encouraging, not adversarial.
+
+## Summary mode
+
+If `$ARGUMENTS` contains "summary" or "stats", skip the quiz and show the
+user's quiz history instead.
+
+1. Read `~/.proctor/history.jsonl`. If the file doesn't exist or is empty,
+   tell the user there's no quiz history yet.
+2. Parse each line as JSON. Filter entries to the current repo using
+   `git rev-parse --show-toplevel`.
+3. If the arguments mention a specific branch (e.g., "summary for
+   feature/auth"), filter to that branch. Otherwise show repo-wide stats.
+4. Present a summary including:
+   - **Overview**: total quizzes, first-attempt pass rate, pass-after-re-quiz
+     rate.
+   - **Per-category breakdown**: pass rates for What, Why, and Risk questions.
+   - **Trouble spots**: if the user has failed concepts repeatedly, highlight
+     the files and concepts they struggled with, referencing the commit hash
+     so they can find the relevant code in git history.
+   - **Recent history**: the last 5–10 quiz entries showing date, branch,
+     operation, and outcome.
+5. End with encouragement — highlight improvement trends if visible.
+
+After showing the summary, stop. Do not run a quiz.
 
 ## Step 1: Determine the diff
 
@@ -93,11 +118,49 @@ code ships) is higher than the cost of a re-quiz (the user learns more).
 Show the user their scorecard: mark each answer PASS or FAIL with a brief
 explanation of your reasoning.
 
+### Logging
+
+After evaluating, **always** log the quiz result before proceeding. Run
+this bash block, filling in the JSON values from the quiz you just ran:
+
+```bash
+mkdir -p ~/.proctor
+REPO=$(git rev-parse --show-toplevel 2>/dev/null || echo "unknown")
+BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
+COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
+FILES=$(git diff --stat $(git merge-base HEAD develop 2>/dev/null || git merge-base HEAD main 2>/dev/null || echo HEAD) HEAD 2>/dev/null | grep '|' | awk '{print $1}' | python3 -c "import sys,json; print(json.dumps([l.strip() for l in sys.stdin]))")
+
+cat >> ~/.proctor/history.jsonl << 'ENTRY'
+{REPLACE_THIS_WITH_THE_JSON_ENTRY}
+ENTRY
+```
+
+The JSON entry should be a single line with these fields:
+- `timestamp`: current UTC time in ISO 8601 format
+- `repo`: the value of `$REPO` from above
+- `branch`: the value of `$BRANCH` from above
+- `operation`: "push", "merge", "pull", or "periodic" (from context)
+- `attempt`: 1 for first attempt, increment for re-quizzes on the same operation
+- `questions`: number of questions asked
+- `passed`: number that passed
+- `failed`: number that failed
+- `categories`: object mapping each category tested to "pass" or "fail"
+  (e.g., `{"what": "pass", "why": "fail", "risk": "pass"}`)
+- `commit`: the value of `$COMMIT` from above
+- `files`: the value of `$FILES` from above (JSON array of filenames)
+- `failed_concepts`: array of short descriptions of what the user missed
+  (e.g., `["error handling in token refresh"]`). Omit or use `[]` on pass.
+- `trivial_skip`: `false` for normal quizzes
+
+For **trivial skips** (one-line typo fixes that don't need a quiz), log with
+`trivial_skip: true`, `questions: 0`, `passed: 0`, `failed: 0`.
+
 ### If ALL answers pass:
 
 1. Confirm what they got right. If anything was slightly imprecise, clarify
    briefly — but the quiz is passed.
-2. Write the marker file so the hook allows the operation:
+2. Log the result (see Logging above).
+3. Write the marker file so the hook allows the operation:
 
 ```bash
 mkdir -p /tmp/proctor
@@ -131,7 +194,7 @@ quiz. Any actual code change invalidates the marker. For periodic
 checkpoints, the checkpoint file resets the commit/change counter so the
 next quiz only covers new changes from this point forward.
 
-3. Tell Claude to retry the original git operation (push, merge, or commit).
+4. Tell the assistant to retry the original git operation (push, merge, or commit).
 
 ### If ANY answer fails:
 
@@ -139,14 +202,15 @@ next quiz only covers new changes from this point forward.
    answer was wrong. This is a teaching moment — be clear and specific, not
    vague. Point to the exact lines or functions in the diff that answer the
    question.
-2. Do NOT write the marker file — the operation stays blocked.
-3. Do NOT re-ask the same questions they already answered correctly.
-4. Re-quiz with new questions that target the same concepts they missed.
+2. Log the result (see Logging above) with the failed concepts.
+3. Do NOT write the marker file — the operation stays blocked.
+4. Do NOT re-ask the same questions they already answered correctly.
+5. Re-quiz with new questions that target the same concepts they missed.
    The user needs to demonstrate they understand the material, not memorize
    the answer you just gave them. For example, if they failed a question
    about error handling, ask a different question about error handling in
    the same diff — not the same question with the answer fresh in mind.
-5. If they fail the same concept twice, suggest they read the specific
+6. If they fail the same concept twice, suggest they read the specific
    files and come back: point them to `git diff --stat` and name the files.
 
 ## Important notes
@@ -158,4 +222,5 @@ next quiz only covers new changes from this point forward.
   remind them the quiz exists for their benefit. In advisory mode, let them
   through. In blocking mode, require at least a genuine attempt.
 - If the diff is trivially small (a one-line typo fix), acknowledge it and
-  write the marker without a full quiz — use good judgment.
+  write the marker without a full quiz — use good judgment. Still log it
+  as a trivial skip.
