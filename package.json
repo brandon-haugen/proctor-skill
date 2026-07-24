@@ -1,6 +1,6 @@
 {
   "name": "proctor-skill",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Quiz developers about branch changes before allowing git push or merge. Works with Claude Code and Copilot in VS Code.",
   "bin": {
     "proctor-skill": "bin/proctor-skill"
