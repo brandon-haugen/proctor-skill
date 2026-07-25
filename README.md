@@ -73,6 +73,12 @@ npx proctor-skill --copilot --global
 
 To update, just run the same command again — npx always fetches the latest version.
 
+To verify the hook is properly wired (useful after Claude Code updates):
+
+```bash
+npx proctor-skill verify /path/to/your-project
+```
+
 To uninstall:
 
 ```bash

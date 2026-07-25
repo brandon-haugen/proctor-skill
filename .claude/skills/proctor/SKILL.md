@@ -18,6 +18,30 @@ You are running a comprehension quiz to make sure the user understands the
 changes on this branch before they land. The goal is learning and code
 ownership, not gatekeeping. Be encouraging, not adversarial.
 
+## Health check
+
+Before doing anything else, verify the hook is properly wired. Run:
+
+```bash
+HOOK_OK=false
+if [ -f .claude/settings.json ] && grep -q "proctor.sh" .claude/settings.json 2>/dev/null; then
+  HOOK_OK=true
+fi
+if [ -f .github/hooks/proctor.json ] && grep -q "proctor.sh" .github/hooks/proctor.json 2>/dev/null; then
+  HOOK_OK=true
+fi
+echo "$HOOK_OK"
+```
+
+If `HOOK_OK` is `false`, warn the user:
+
+> **Warning:** The proctor hook is not wired up in this project. Pushes and
+> merges will not be automatically blocked. Run `npx proctor-skill .` (or
+> `npx proctor-skill --copilot .` for Copilot) to fix this.
+
+Continue with the quiz or summary regardless — the skill still works when
+invoked manually, the user just won't get automatic gates.
+
 ## Summary mode
 
 If `$ARGUMENTS` contains "summary" or "stats", skip the quiz and show the

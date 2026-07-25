@@ -12,9 +12,35 @@ while [ -L "$SOURCE" ]; do
 done
 PACKAGE_DIR="$(cd "$(dirname "$SOURCE")/.." && pwd)"
 
-if [ "${1:-}" = "uninstall" ]; then
-  shift
-  exec bash "$PACKAGE_DIR/uninstall.sh" "$@"
-else
-  exec bash "$PACKAGE_DIR/install.sh" "$@"
-fi
+case "${1:-}" in
+  uninstall)
+    shift
+    exec bash "$PACKAGE_DIR/uninstall.sh" "$@"
+    ;;
+  verify)
+    shift
+    TARGET="${1:-.}"
+    FOUND=false
+    if [ -f "$TARGET/.claude/settings.json" ] && grep -q "proctor.sh" "$TARGET/.claude/settings.json" 2>/dev/null; then
+      echo "Claude Code: hook wired in $TARGET/.claude/settings.json"
+      FOUND=true
+    elif [ -f "$TARGET/.claude/hooks/proctor.sh" ]; then
+      echo "Claude Code: hook script exists but NOT wired in settings.json"
+    fi
+    if [ -f "$TARGET/.github/hooks/proctor.json" ] && grep -q "proctor.sh" "$TARGET/.github/hooks/proctor.json" 2>/dev/null; then
+      echo "Copilot: hook wired in $TARGET/.github/hooks/proctor.json"
+      FOUND=true
+    elif [ -f "$TARGET/.github/hooks/proctor.sh" ]; then
+      echo "Copilot: hook script exists but NOT wired in proctor.json"
+    fi
+    if [ "$FOUND" = false ]; then
+      echo "No proctor hook found in $TARGET"
+      echo "  Run: npx proctor-skill $TARGET"
+      echo "  Or:  npx proctor-skill --copilot $TARGET"
+      exit 1
+    fi
+    ;;
+  *)
+    exec bash "$PACKAGE_DIR/install.sh" "$@"
+    ;;
+esac
