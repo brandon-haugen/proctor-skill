@@ -29,6 +29,7 @@ See your quiz history and identify areas where you've struggled:
 ```
 /proctor summary
 /proctor summary for feature/auth
+/proctor summary for proctor-skill
 ```
 
 The summary shows:
@@ -36,7 +37,7 @@ The summary shows:
 - **Trouble spots**: files and concepts you've failed on repeatedly, with commit references so you can find the relevant code in git history
 - **Recent history**: last 5–10 quizzes with date, branch, operation, and outcome
 
-Quiz history is stored in `~/.proctor/history.jsonl` and persists across sessions. Each entry includes the commit hash and files from the diff, so the summary can point you to specific spots in your git history where you had trouble.
+Quiz history is stored in `~/.proctor/history.jsonl` and persists across sessions. The default summary shows all repos on your machine — filter by repo name or branch to narrow it down. Each entry includes the commit hash and files from the diff, so the summary can point you to specific spots in your git history where you had trouble.
 
 ### Key details
 

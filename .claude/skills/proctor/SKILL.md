@@ -25,10 +25,11 @@ user's quiz history instead.
 
 1. Read `~/.proctor/history.jsonl`. If the file doesn't exist or is empty,
    tell the user there's no quiz history yet.
-2. Parse each line as JSON. Filter entries to the current repo using
-   `git rev-parse --show-toplevel`.
-3. If the arguments mention a specific branch (e.g., "summary for
-   feature/auth"), filter to that branch. Otherwise show repo-wide stats.
+2. Parse each line as JSON. By default, show stats across all repos.
+3. If the arguments mention a specific repo name (e.g., "summary for
+   proctor-skill"), filter entries whose `repo` path ends with that name.
+   If they mention a specific branch (e.g., "summary for feature/auth"),
+   filter to that branch. Both filters can be combined.
 4. Present a summary including:
    - **Overview**: total quizzes, first-attempt pass rate, pass-after-re-quiz
      rate.
