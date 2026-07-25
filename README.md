@@ -29,7 +29,7 @@ See your quiz history and identify areas where you've struggled:
 ```
 /proctor summary
 /proctor summary for feature/auth
-/proctor summary for proctor-skill
+/proctor summary for repository-name
 ```
 
 The summary shows:

@@ -27,7 +27,7 @@ user's quiz history instead.
    tell the user there's no quiz history yet.
 2. Parse each line as JSON. By default, show stats across all repos.
 3. If the arguments mention a specific repo name (e.g., "summary for
-   proctor-skill"), filter entries whose `repo` path ends with that name.
+   my-project"), filter entries whose `repo` path ends with that name.
    If they mention a specific branch (e.g., "summary for feature/auth"),
    filter to that branch. Both filters can be combined.
 4. Present a summary including:
